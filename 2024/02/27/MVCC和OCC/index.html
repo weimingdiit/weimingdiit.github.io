@@ -18,8 +18,8 @@
   
     <meta name="description" content="HBase MVCChttps:&#x2F;&#x2F;www.jianshu.com&#x2F;p&#x2F;86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采">
 <meta property="og:type" content="article">
-<meta property="og:title" content="MVCC &amp; OCC">
-<meta property="og:url" content="http://example.com/2024/01/01/MVCC%20&%20OCC/index.html">
+<meta property="og:title" content="MVCC和OCC">
+<meta property="og:url" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/index.html">
 <meta property="og:site_name" content="weimingdiit">
 <meta property="og:description" content="HBase MVCChttps:&#x2F;&#x2F;www.jianshu.com&#x2F;p&#x2F;86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采">
 <meta property="og:locale" content="zh_CN">
@@ -28,16 +28,15 @@
 <meta property="og:image" content="http://example.com/image3.png">
 <meta property="og:image" content="http://example.com/image4.png">
 <meta property="og:image" content="http://example.com/image5.png">
-<meta property="article:published_time" content="2024-01-01T00:28:15.000Z">
-<meta property="article:modified_time" content="2024-02-27T00:38:02.487Z">
+<meta property="article:published_time" content="2024-02-27T01:41:39.000Z">
+<meta property="article:modified_time" content="2024-02-27T01:45:13.373Z">
 <meta property="article:author" content="Jameswei">
-<meta property="article:tag" content="原创">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="http://example.com/image1.png">
   
   
   
-  <title>MVCC &amp; OCC - weimingdiit</title>
+  <title>MVCC和OCC - weimingdiit</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -232,7 +231,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="MVCC &amp; OCC"></span>
+            <span id="subtitle" data-typed-text="MVCC和OCC"></span>
           
         </div>
 
@@ -243,8 +242,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2024-01-01 08:28" pubdate>
-          2024年1月1日 早上
+        <time datetime="2024-02-27 09:41" pubdate>
+          2024年2月27日 上午
         </time>
       </span>
     
@@ -311,7 +310,7 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">MVCC &amp; OCC</h1>
+            <h1 id="seo-header">MVCC和OCC</h1>
             
             
               <div class="markdown-body">
@@ -332,13 +331,14 @@
 <p><strong>下面我们考虑一个问题：</strong><br>根据前面的讨论可知，假如数据已经写入memstore，但还没有写入WAL，此时认为该条数据还没有写成功，如果按照read committed隔离界别的定义，用户在进行查询操作时（尤其是查询memstore时），是不应该看到这条数据的，那HBase是如何区分正在写入和写入成功的数据呢？<br>我们可以简单理解HBase在每次put操作时，都会为该操作分配一个id，可以类比mysql里面的事务id，是本次put的唯一标识，该id是region级别递增的，并且每个region还有一个MVCC控制中心，它还同时维护了两个pos：一个readpoint，一个writepoint。readpoint指向目前已经插入完成的id，当put操作完成时会更新readpoint；而writepoint指向目前正在插入的最大id，可以认为writepoint永远和最新申请的put的事务id是一样的。<br><img src="/image2.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <p><strong>下面我们画图解释：</strong><br>1.client插入数据时（这里的client我们可以理解为是regionserver），首先会向MVCC控制中心（MultiVersionConsistencyControl类）申请最新的事务id，其实就是返回write point++，每一个region各自拥有一个独立MVCC控制中心。<br>2.假设初始状态read和write point都指向2，表明目前没有正在进行的put操作，新的put请求过来时，该region的MVCC控制中心向它自己维护的队列中插入一个新的entry，表示发起了一个新的put事务，并且第一步中将write point++。<br>3.向client返回本次事务的id为3.<br>4.client向memstore中插入数据，并且该数据附带本次事务的id号：3<br>5.将本次的put操作写入WAL，写入成功后代表数据写入成功<br>6.此时移动read point至3，表示任何MVCC值小于等于3的数据此时都可以被新创建的scan查询检索到。<br>scan执行查询操作时，首先会向MVCC控制中心拿到目前的read point，然后对memstore和storeFiles进行查询，并过滤掉MVCC值大于本次scan MVCC的数据，保证了scan不会检索到还未提交成功的数据。这也说明HBase默认即为read committed级别，只不过是单行事务。<br><img src="/image3.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <p>真正业务场景下是会有很多个client同时写入的，此时不管向MVCC申请事务id还是更新read point都会涉及到多用户竞争的情况。如图client A B C分别写入了数据de&#x2F;fg&#x2F;hi，有可能A C已经写入成功了，而B还未执行完，下面我们看一下MVCC控制中心是如何协调并发请求的。</p>
-<h2 id="MVCC控制中心"><a href="#MVCC控制中心" class="headerlink" title="MVCC控制中心"></a>MVCC控制中心</h2><p>先介绍一下MVCC控制中心–<strong>MultiVersionConsistencyControl</strong>类.<br><strong>它包含了三个重要的成员：</strong><br>1.memstoreRead：即我们提到的read point，记录可以已执行完毕的事务id<br>2.memstoreWrite：即我们提到的write point，记录当前正在执行的最大事务id<br>3.writeQueue：一个LinkedList，每一个元素是一个WriteEntry对象。<br><strong>WriteEntry类包含两个属性：</strong><br>1.writeNumber：事务id<br>2.completed： True&#x2F;False，数据写入成功后，写入线程会将其设置为True<br><img src="/image4.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<h2 id="MVCC控制中心"><a href="#MVCC控制中心" class="headerlink" title="MVCC控制中心"></a>MVCC控制中心</h2><p>先介绍一下MVCC控制中心–<strong>MultiVersionConsistencyControl</strong>类.<br><strong>它包含了三个重要的成员：</strong><br>1.memstoreRead：即我们提到的read point，记录可以已执行完毕的事务id<br>2.memstoreWrite：即我们提到的write point，记录当前正在执行的最大事务id<br>3.writeQueue：一个LinkedList，每一个元素是一个WriteEntry对象。<br><strong>WriteEntry类包含两个属性：</strong><br>1.writeNumber：事务id<br>2.completed： True&#x2F;False，数据写入成功后，写入线程会将其设置为True</p>
+<p><img src="/image4.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <p><strong>下面详细解释MVCC控制中心针对多用户请求是如何做到同步的：</strong></p>
 <ol>
 <li>当一个client写入数据时，首先lock住MVCC控制中心的写入队列LinkedList，并向其插入一个新的entry，并将之前的write point+1赋予entry的num（write point+1也是同步操作），表示发起了一个新的写入事务。Flag值此时为False，表明目前事务还未完成，数据还在写入过程中。</li>
 <li>第二步client将数据写入memstore和WAL，此时认为数据已经持久化，可以结束该事务。</li>
-<li>client调用MVCC控制中心的 complete(WriteEntry writeEntry )方法，该方法采用synchronized关键字，可以理解就是同步方法，将该 writeEntry 的Flag设置为True，表示该entry对应的事务完成。但是单单将Flag设置为True是不够的，我们的最终目的是要让scan能够看到最新写入完成的数据，也就是说还需要更新read point。</li>
-<li>更新read point：同样在 complete(WriteEntry writeEntry ) 方法中完成，每一个client将其对应的entry的Flag设置为True后，都会去按照队列顺序，从read point开始遍历，假如遍历到的entry的Flag为True，则将read point更新至此位置，直到遇到Flag为False的位置时停止。也就是说每个client写入之后，都会尽力去将read point更新到目前最大连续的已经完成的事务的点（因为是有可能后开始的事务先于之前的事务完成）。</li>
+<li>client调用MVCC控制中心的 complete(WriteEntry writeEntry)方法，该方法采用synchronized关键字，可以理解就是同步方法，将该 writeEntry 的Flag设置为True，表示该entry对应的事务完成。但是单单将Flag设置为True是不够的，我们的最终目的是要让scan能够看到最新写入完成的数据，也就是说还需要更新read point。</li>
+<li>更新read point：同样在 complete(WriteEntry writeEntry) 方法中完成，每一个client将其对应的entry的Flag设置为True后，都会去按照队列顺序，从read point开始遍历，假如遍历到的entry的Flag为True，则将read point更新至此位置，直到遇到Flag为False的位置时停止。也就是说每个client写入之后，都会尽力去将read point更新到目前最大连续的已经完成的事务的点（因为是有可能后开始的事务先于之前的事务完成）。</li>
 </ol>
 <p>看到这里，可能大家会想了，那假如事务A先于事务C，事务A还未完成，但事务C已经完成，事务C也只能将read point更新到事务A之前的位置，如果此时事务C返回写入成功，那按道理来说scan是应该能够查到事务C的数据，但是由于read point没有更新到C，就会造成一个现象就是：事务C明明提示执行成功，但是查询的时候却看不到。</p>
 <p>所以上面说的第4步其实还并没有完，client在执行completeMemstoreInsert后，还会执行一个waitForRead(entry)方法，参数的entry就是该事务对应的entry，该方法会一直等待read point大于等于该entry的num时才会返回，这样保证了事务有序完成。</p>
@@ -374,21 +374,21 @@
 <li>如果产生了冲突，解决它，通常是终止事务，回滚，尽管其他解决方法仍然可能。必须注意避免TOCTTOU bug，特别是，如果此阶段与之前的阶段并不是作为单个原子操作执行。</li>
 </ol>
 <h2 id="OCC在hudi的具体实现"><a href="#OCC在hudi的具体实现" class="headerlink" title="OCC在hudi的具体实现"></a>OCC在hudi的具体实现</h2><p>具体参考 <a target="_blank" rel="noopener" href="https://www.yuque.com/weeming/qr6lam/zmulho">InsertOverWrite &amp; OCC</a></p>
-<p>写操作逻辑： HoodieSparkSqlWriter .write()</p>
+<p>写操作逻辑： HoodieSparkSqlWriter.write()</p>
 <ol>
 <li>先创建一个instant ,可以理解为事务时间戳</li>
-<li>创建对应的操作私有空间，其实就是创建一些文件&#x2F;目录，startCommitWithTime ()</li>
-<li>开始执行写操作，doWriteOperation ，写到临时空间</li>
-<li>进行提交和提交之后的一些工作，  commitAndPerformPostOperations <ol>
-<li>提交操作，commit ()</li>
-<li>提交之后的工作，Compaction &#x2F;clustering 等</li>
+<li>创建对应的操作私有空间，其实就是创建一些文件&#x2F;目录，startCommitWithTime()</li>
+<li>开始执行写操作，doWriteOperation，写到临时空间</li>
+<li>进行提交和提交之后的一些工作，  commitAndPerformPostOperations<ol>
+<li>提交操作，commit()</li>
+<li>提交之后的工作，Compaction&#x2F;clustering 等</li>
 </ol>
 </li>
 <li>重点看commit()<ol>
 <li>开启事务，本质是获取了当前的instant和最近一次完成的instant,并且赋值给client的成员变量</li>
-<li>preCommit (),主要是为了解决提交前的验证工作，判断是否有冲突，并且解决冲突</li>
-<li>commit (), 执行具体的提交动作，主要是将一些meta 信息写入hudi meta 表中</li>
-<li>postCommit (), 对一些commit进行清理和归档操作</li>
+<li>preCommit(),主要是为了解决提交前的验证工作，判断是否有冲突，并且解决冲突</li>
+<li>commit(), 执行具体的提交动作，主要是将一些meta 信息写入hudi meta 表中</li>
+<li>postCommit(), 对一些commit进行清理和归档操作</li>
 </ol>
 </li>
 </ol>
@@ -411,41 +411,6 @@
             <div>
               <div class="post-metas my-3">
   
-    <div class="post-meta mr-3 d-flex align-items-center">
-      <i class="iconfont icon-category"></i>
-      
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/Hbase/" class="category-chain-item">Hbase</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/Hbase/MVCC/" class="category-chain-item">MVCC</a>
-  
-  
-
-  
-
-      </span>
-    
-  
-</span>
-
-    </div>
-  
-  
-    <div class="post-meta">
-      <i class="iconfont icon-tags"></i>
-      
-        <a href="/tags/%E5%8E%9F%E5%88%9B/" class="print-no-link">#原创</a>
-      
-    </div>
   
 </div>
 
@@ -455,8 +420,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>MVCC &amp; OCC</div>
-      <div>http://example.com/2024/01/01/MVCC &amp; OCC/</div>
+      <div>MVCC和OCC</div>
+      <div>http://example.com/2024/02/27/MVCC和OCC/</div>
     </div>
     <div class="license-meta">
       
@@ -468,7 +433,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2024年1月1日</div>
+          <div>2024年2月27日</div>
         </div>
       
       
@@ -500,15 +465,15 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2024/02/26/hello-world/" title="Hello World">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Hello World</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2024/02/26/test-artical/" title="test_artical">
+                        <span class="hidden-mobile">test_artical</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>
