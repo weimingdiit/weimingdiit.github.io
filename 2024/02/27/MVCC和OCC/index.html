@@ -16,12 +16,12 @@
   <meta name="author" content="Jameswei">
   <meta name="keywords" content="">
   
-    <meta name="description" content="HBase MVCChttps:&#x2F;&#x2F;www.jianshu.com&#x2F;p&#x2F;86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采">
+    <meta name="description" content="HBase MVCCMVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采用MVCC（多版本并发控制）来尽量避免使用不必要的锁以提高性能。 多版本并发控">
 <meta property="og:type" content="article">
 <meta property="og:title" content="MVCC和OCC">
 <meta property="og:url" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/index.html">
 <meta property="og:site_name" content="weimingdiit">
-<meta property="og:description" content="HBase MVCChttps:&#x2F;&#x2F;www.jianshu.com&#x2F;p&#x2F;86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采">
+<meta property="og:description" content="HBase MVCCMVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采用MVCC（多版本并发控制）来尽量避免使用不必要的锁以提高性能。 多版本并发控">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/image1.png">
 <meta property="og:image" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/image2.png">
@@ -29,8 +29,9 @@
 <meta property="og:image" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/image4.png">
 <meta property="og:image" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/image5.png">
 <meta property="article:published_time" content="2024-02-27T01:41:39.000Z">
-<meta property="article:modified_time" content="2024-02-27T02:31:16.902Z">
+<meta property="article:modified_time" content="2024-02-27T15:03:37.692Z">
 <meta property="article:author" content="Jameswei">
+<meta property="article:tag" content="HBase">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="http://example.com/2024/02/27/MVCC%E5%92%8COCC/image1.png">
   
@@ -265,7 +266,7 @@
         
         
         
-          29 分钟
+          28 分钟
         
       </span>
     
@@ -315,8 +316,7 @@
             
               <div class="markdown-body">
                 
-                <h1 id="HBase-MVCC"><a href="#HBase-MVCC" class="headerlink" title="HBase MVCC"></a>HBase MVCC</h1><p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/86246d8bee24">https://www.jianshu.com/p/86246d8bee24</a></p>
-<h2 id="MVCC问题背景"><a href="#MVCC问题背景" class="headerlink" title="MVCC问题背景"></a>MVCC问题背景</h2><p>数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过<strong>加锁</strong>来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采用MVCC（多版本并发控制）来尽量避免使用不必要的锁以提高性能。</p>
+                <h1 id="HBase-MVCC"><a href="#HBase-MVCC" class="headerlink" title="HBase MVCC"></a>HBase MVCC</h1><h2 id="MVCC问题背景"><a href="#MVCC问题背景" class="headerlink" title="MVCC问题背景"></a>MVCC问题背景</h2><p>数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过<strong>加锁</strong>来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采用MVCC（多版本并发控制）来尽量避免使用不必要的锁以提高性能。</p>
 <p><strong>多版本并发控制（MVCC）是一种用来解决读-写冲突的无锁并发控制，也就是为事务分配单向增长的时间戳，为每个修改保存一个版本，版本与事务时间戳关联，读操作只读该事务开始前(看到)的数据库的快照。 这样在读操作不用阻塞写操作，写操作不用阻塞读操作的同时，避免了脏读和不可重复读</strong></p>
 <p>本文主要介绍HBase的MVCC实现机制。<br>在讲解HBase的MVCC之前，我们先了解一下现有的隔离级别，sql标准定义了4种隔离级别：</p>
 <ol>
@@ -351,9 +351,7 @@
 <p>所以上面说的第4步其实还并没有完，client在执行completeMemstoreInsert后，还会执行一个waitForRead(entry)方法，参数的entry就是该事务对应的entry，该方法会一直等待read point大于等于该entry的num时才会返回，这样保证了事务有序完成。</p>
 <p>以上就是HBase写入时MVCC的工作流程，scan就比较好理解了，每一个scan请求都会申请一个readpoint，保证了该read point之后的事务不会被检索到。</p>
 <p>备注：<br>HBase也同样支持read uncommitted级别，也就是我们在查询的时候将scan的mvcc值设置为一个超大的值，大于目前所有申请的MVCC值，那么查询时同样会返回正在写入的数据。</p>
-<h1 id="Mysql-MVCC"><a href="#Mysql-MVCC" class="headerlink" title="Mysql MVCC"></a>Mysql MVCC</h1><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xuwc/p/13873611.html">https://www.cnblogs.com/xuwc/p/13873611.html</a></p>
-<h1 id="乐观并行控制协议（OCC）"><a href="#乐观并行控制协议（OCC）" class="headerlink" title="乐观并行控制协议（OCC）"></a>乐观并行控制协议（OCC）</h1><p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/143036656">https://zhuanlan.zhihu.com/p/143036656</a><br><a target="_blank" rel="noopener" href="https://www.zhihu.com/question/60278698">https://www.zhihu.com/question/60278698</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/41505168">https://zhuanlan.zhihu.com/p/41505168</a> –大神</p>
-<p>如果从概念的分类来讲是另外一个角度，本文不讲分类，我们在此讨论的是单版本的occ(Optimistic Concurrency Control)，只从原理和在hudi的具体实现两个角度进行分析。</p>
+<h1 id="乐观并行控制协议（OCC）"><a href="#乐观并行控制协议（OCC）" class="headerlink" title="乐观并行控制协议（OCC）"></a>乐观并行控制协议（OCC）</h1><p>如果从概念的分类来讲是另外一个角度，本文不讲分类，我们在此讨论的是单版本的occ(Optimistic Concurrency Control)，只从原理和在hudi的具体实现两个角度进行分析。</p>
 <p>乐观并发是一个应用于事务系统的并发控制方法。OCC假设大多数的事务可以在不互相干扰的情况下完成。</p>
 <ol>
 <li>当事务运行时，事务不需要申请资源的锁，便可以使用这些资源。</li>
@@ -380,8 +378,7 @@
 <li>如果没有冲突，把临时副本区的数据更新到数据库中，完成事务提交。</li>
 <li>如果产生了冲突，解决它，通常是终止事务，回滚，尽管其他解决方法仍然可能。必须注意避免TOCTTOU bug，特别是，如果此阶段与之前的阶段并不是作为单个原子操作执行。</li>
 </ol>
-<h2 id="OCC在hudi的具体实现"><a href="#OCC在hudi的具体实现" class="headerlink" title="OCC在hudi的具体实现"></a>OCC在hudi的具体实现</h2><p>具体参考 <a target="_blank" rel="noopener" href="https://www.yuque.com/weeming/qr6lam/zmulho">InsertOverWrite &amp; OCC</a></p>
-<p>写操作逻辑： HoodieSparkSqlWriter.write()</p>
+<h2 id="OCC在hudi的具体实现"><a href="#OCC在hudi的具体实现" class="headerlink" title="OCC在hudi的具体实现"></a>OCC在hudi的具体实现</h2><p>写操作逻辑： HoodieSparkSqlWriter.write()</p>
 <ol>
 <li>先创建一个instant ,可以理解为事务时间戳</li>
 <li>创建对应的操作私有空间，其实就是创建一些文件&#x2F;目录，startCommitWithTime()</li>
@@ -412,6 +409,7 @@
 <p>多版本并发控制（MVCC）是一种用来解决<strong>读-写冲突的无锁并发控制</strong>，也就是为事务分配单向增长的时间戳，为每个修改保存一个版本，版本与事务时间戳关联，读操作只读该事务开始前(看到)的数据库的快照。 这样在读操作不用阻塞写操作，写操作不用阻塞读操作的同时，避免了脏读和不可重复读</p>
 <p>多版本并发控制可以结合基于锁的并发控制来解决写-写冲突，即MVCC+2PL，也可以结合乐观并发控制来解决写-写冲突。</p>
 <p>乐观并发控制（OCC）是一种用来解决<strong>写-写冲突的无锁并发控制</strong>，认为事务间争用没有那么多，所以先进行修改，在提交事务前，检查一下事务开始后，有没有新提交改变，如果没有就提交，如果有就放弃并重试。乐观并发控制类似自选锁。乐观并发控制适用于低数据争用，写冲突比较少的环境。<br>多版本并发控制可以结合基于锁的并发控制来解决写-写冲突，即MVCC+2PL，也可以结合乐观并发控制来解决写-写冲突</p>
+<p>参考：<br><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/86246d8bee24">https://www.jianshu.com/p/86246d8bee24</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xuwc/p/13873611.html">https://www.cnblogs.com/xuwc/p/13873611.html</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/143036656">https://zhuanlan.zhihu.com/p/143036656</a><br><a target="_blank" rel="noopener" href="https://www.zhihu.com/question/60278698">https://www.zhihu.com/question/60278698</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/41505168">https://zhuanlan.zhihu.com/p/41505168</a></p>
 
                 
               </div>
@@ -420,6 +418,41 @@
             <div>
               <div class="post-metas my-3">
   
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%8D%8F%E8%AE%AE/" class="category-chain-item">协议</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%8D%8F%E8%AE%AE/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%8D%8F%E8%AE%AE/" class="category-chain-item">并发控制协议</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/HBase/" class="print-no-link">#HBase</a>
+      
+    </div>
   
 </div>
 

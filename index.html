@@ -263,7 +263,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/02/27/MVCC%E5%92%8COCC/" target="_self">
         <div>
-          HBase MVCChttps://www.jianshu.com/p/86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采
+          HBase MVCCMVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采用MVCC（多版本并发控制）来尽量避免使用不必要的锁以提高性能。 多版本并发控
         </div>
       </a>
 
@@ -277,6 +277,41 @@
           </div>
         
         
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%8D%8F%E8%AE%AE/" class="category-chain-item">协议</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%8D%8F%E8%AE%AE/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%8D%8F%E8%AE%AE/" class="category-chain-item">并发控制协议</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/HBase/">#HBase</a>
+            
+          </div>
         
       </div>
     </article>
