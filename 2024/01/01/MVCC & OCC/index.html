@@ -18,26 +18,26 @@
   
     <meta name="description" content="HBase MVCChttps:&#x2F;&#x2F;www.jianshu.com&#x2F;p&#x2F;86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采">
 <meta property="og:type" content="article">
-<meta property="og:title" content="test_artical">
+<meta property="og:title" content="MVCC &amp; OCC">
 <meta property="og:url" content="http://example.com/2024/01/01/MVCC%20&%20OCC/index.html">
 <meta property="og:site_name" content="weimingdiit">
 <meta property="og:description" content="HBase MVCChttps:&#x2F;&#x2F;www.jianshu.com&#x2F;p&#x2F;86246d8bee24 MVCC问题背景数据库为了保证一致性，在执行读写操作时往往会对数据做一些锁操作，比如两个client同时修改一条数据，我们无法确定最终的数据到底是哪一个client执行的结果，所以需要通过加锁来保证数据的一致性。但是锁操作的代价是比较大的，往往需要对加锁操作进行优化，主流的数据库Mysql，PG等都采">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126638740-66d30c73-4e69-4efc-af96-c00940d0bedc.png#averageHue=%23f1f1f1&clientId=ucb31ba64-bfa7-4&from=paste&height=266&id=u7e74f01c&originHeight=368&originWidth=822&originalType=binary&ratio=1&rotation=0&showTitle=false&size=74083&status=done&style=none&taskId=u5f11d465-e601-4e93-a912-181535fa028&title=&width=595">
-<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126673818-25824c00-28c1-4e7d-98ae-a46723e64f46.png#averageHue=%23f9f9f9&clientId=ucb31ba64-bfa7-4&from=paste&height=333&id=u8aa34336&originHeight=517&originWidth=1163&originalType=binary&ratio=1&rotation=0&showTitle=false&size=175169&status=done&style=none&taskId=ua541db9e-7cf0-45a9-a01e-2c438a53cf6&title=&width=750">
-<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126711832-06880af6-cb7f-4114-830b-2bbb90c98d10.png#averageHue=%23f9f9f8&clientId=ucb31ba64-bfa7-4&from=paste&height=501&id=ue2ad5b5f&originHeight=501&originWidth=1120&originalType=binary&ratio=1&rotation=0&showTitle=false&size=179214&status=done&style=none&taskId=u6e5cccbd-a319-4eba-abba-f368d3f333d&title=&width=1120">
-<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126739490-973f72d6-3fd1-4dbb-9eab-87c23ca4ea3e.png#averageHue=%23f3f2f2&clientId=ucb31ba64-bfa7-4&from=paste&height=495&id=uc885a32e&originHeight=495&originWidth=1119&originalType=binary&ratio=1&rotation=0&showTitle=false&size=216626&status=done&style=none&taskId=u1ed7416c-6991-4b1e-9ace-494ae0f8d10&title=&width=1119">
-<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/2400117/1668152137188-6d557d2b-4dbf-4ece-bc4f-6529f176e754.png#averageHue=%232c2c2b&clientId=u112e1808-fc78-4&from=paste&height=791&id=ua4c3cef8&originHeight=1581&originWidth=2172&originalType=binary&ratio=1&rotation=0&showTitle=false&size=1030029&status=done&style=none&taskId=u7539664a-fcc9-479b-9db3-927d247e9db&title=&width=1086">
+<meta property="og:image" content="http://example.com/image1.png">
+<meta property="og:image" content="http://example.com/image2.png">
+<meta property="og:image" content="http://example.com/image3.png">
+<meta property="og:image" content="http://example.com/image4.png">
+<meta property="og:image" content="http://example.com/image5.png">
 <meta property="article:published_time" content="2024-01-01T00:28:15.000Z">
-<meta property="article:modified_time" content="2024-02-27T00:26:15.452Z">
+<meta property="article:modified_time" content="2024-02-27T00:38:02.487Z">
 <meta property="article:author" content="Jameswei">
 <meta property="article:tag" content="原创">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126638740-66d30c73-4e69-4efc-af96-c00940d0bedc.png#averageHue=%23f1f1f1&clientId=ucb31ba64-bfa7-4&from=paste&height=266&id=u7e74f01c&originHeight=368&originWidth=822&originalType=binary&ratio=1&rotation=0&showTitle=false&size=74083&status=done&style=none&taskId=u5f11d465-e601-4e93-a912-181535fa028&title=&width=595">
+<meta name="twitter:image" content="http://example.com/image1.png">
   
   
   
-  <title>test_artical - weimingdiit</title>
+  <title>MVCC &amp; OCC - weimingdiit</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -232,7 +232,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="test_artical"></span>
+            <span id="subtitle" data-typed-text="MVCC &amp; OCC"></span>
           
         </div>
 
@@ -311,7 +311,7 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">test_artical</h1>
+            <h1 id="seo-header">MVCC &amp; OCC</h1>
             
             
               <div class="markdown-body">
@@ -326,14 +326,13 @@
 <li>repeatable read       可重复读</li>
 <li>serializable             可串行化</li>
 </ol>
-<p><strong>HBase不支持跨行事务，目前只支持单行级别的read uncommitted和read committed隔离级别。下面主要讲解HBase的read committed实现机制。</strong><br><img src="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126638740-66d30c73-4e69-4efc-af96-c00940d0bedc.png#averageHue=%23f1f1f1&clientId=ucb31ba64-bfa7-4&from=paste&height=266&id=u7e74f01c&originHeight=368&originWidth=822&originalType=binary&ratio=1&rotation=0&showTitle=false&size=74083&status=done&style=none&taskId=u5f11d465-e601-4e93-a912-181535fa028&title=&width=595" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<p><strong>HBase不支持跨行事务，目前只支持单行级别的read uncommitted和read committed隔离级别。下面主要讲解HBase的read committed实现机制。</strong><br><img src="/image1.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <p>HBase采用LSM树结构，当client发送数据给regionserver端时，regionserver会将数据写入对应的region中，region是由一个memstore和多个storeFile组成，我们可以将memstore看做是一个skipList（跳表），所有写入的数据首先存放在memstore中，当memstore增大到指定的大小后，memstore中的数据flush到磁盘生成一个新的storeFile。</p>
 <p>HBase的写入主要分两步：<br><strong>1.数据首先写入memstore</strong><br><strong>2.数据写入WAL</strong><br>写入WAL的目的是为了持久化，防止memstore中的数据还未落盘时宕机造成的数据丢失，只有数据写入WAL成功之后才会认为该数据写入成功。</p>
-<p><strong>下面我们考虑一个问题：</strong><br>根据前面的讨论可知，假如数据已经写入memstore，但还没有写入WAL，此时认为该条数据还没有写成功，如果按照read committed隔离界别的定义，用户在进行查询操作时（尤其是查询memstore时），是不应该看到这条数据的，那HBase是如何区分正在写入和写入成功的数据呢？<br>我们可以简单理解HBase在每次put操作时，都会为该操作分配一个id，可以类比mysql里面的事务id，是本次put的唯一标识，该id是region级别递增的，并且每个region还有一个MVCC控制中心，它还同时维护了两个pos：一个readpoint，一个writepoint。readpoint指向目前已经插入完成的id，当put操作完成时会更新readpoint；而writepoint指向目前正在插入的最大id，可以认为writepoint永远和最新申请的put的事务id是一样的。<br><img src="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126673818-25824c00-28c1-4e7d-98ae-a46723e64f46.png#averageHue=%23f9f9f9&clientId=ucb31ba64-bfa7-4&from=paste&height=333&id=u8aa34336&originHeight=517&originWidth=1163&originalType=binary&ratio=1&rotation=0&showTitle=false&size=175169&status=done&style=none&taskId=ua541db9e-7cf0-45a9-a01e-2c438a53cf6&title=&width=750" srcset="/img/loading.gif" lazyload alt="image.png"></p>
-<p><strong>下面我们画图解释：</strong><br>1.client插入数据时（这里的client我们可以理解为是regionserver），首先会向MVCC控制中心（MultiVersionConsistencyControl类）申请最新的事务id，其实就是返回write point++，每一个region各自拥有一个独立MVCC控制中心。<br>2.假设初始状态read和write point都指向2，表明目前没有正在进行的put操作，新的put请求过来时，该region的MVCC控制中心向它自己维护的队列中插入一个新的entry，表示发起了一个新的put事务，并且第一步中将write point++。<br>3.向client返回本次事务的id为3.<br>4.client向memstore中插入数据，并且该数据附带本次事务的id号：3<br>5.将本次的put操作写入WAL，写入成功后代表数据写入成功<br>6.此时移动read point至3，表示任何MVCC值小于等于3的数据此时都可以被新创建的scan查询检索到。<br>scan执行查询操作时，首先会向MVCC控制中心拿到目前的read point，然后对memstore和storeFiles进行查询，并过滤掉MVCC值大于本次scan MVCC的数据，保证了scan不会检索到还未提交成功的数据。这也说明HBase默认即为read committed级别，只不过是单行事务。<br><img src="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126711832-06880af6-cb7f-4114-830b-2bbb90c98d10.png#averageHue=%23f9f9f8&clientId=ucb31ba64-bfa7-4&from=paste&height=501&id=ue2ad5b5f&originHeight=501&originWidth=1120&originalType=binary&ratio=1&rotation=0&showTitle=false&size=179214&status=done&style=none&taskId=u6e5cccbd-a319-4eba-abba-f368d3f333d&title=&width=1120" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<p><strong>下面我们考虑一个问题：</strong><br>根据前面的讨论可知，假如数据已经写入memstore，但还没有写入WAL，此时认为该条数据还没有写成功，如果按照read committed隔离界别的定义，用户在进行查询操作时（尤其是查询memstore时），是不应该看到这条数据的，那HBase是如何区分正在写入和写入成功的数据呢？<br>我们可以简单理解HBase在每次put操作时，都会为该操作分配一个id，可以类比mysql里面的事务id，是本次put的唯一标识，该id是region级别递增的，并且每个region还有一个MVCC控制中心，它还同时维护了两个pos：一个readpoint，一个writepoint。readpoint指向目前已经插入完成的id，当put操作完成时会更新readpoint；而writepoint指向目前正在插入的最大id，可以认为writepoint永远和最新申请的put的事务id是一样的。<br><img src="/image2.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<p><strong>下面我们画图解释：</strong><br>1.client插入数据时（这里的client我们可以理解为是regionserver），首先会向MVCC控制中心（MultiVersionConsistencyControl类）申请最新的事务id，其实就是返回write point++，每一个region各自拥有一个独立MVCC控制中心。<br>2.假设初始状态read和write point都指向2，表明目前没有正在进行的put操作，新的put请求过来时，该region的MVCC控制中心向它自己维护的队列中插入一个新的entry，表示发起了一个新的put事务，并且第一步中将write point++。<br>3.向client返回本次事务的id为3.<br>4.client向memstore中插入数据，并且该数据附带本次事务的id号：3<br>5.将本次的put操作写入WAL，写入成功后代表数据写入成功<br>6.此时移动read point至3，表示任何MVCC值小于等于3的数据此时都可以被新创建的scan查询检索到。<br>scan执行查询操作时，首先会向MVCC控制中心拿到目前的read point，然后对memstore和storeFiles进行查询，并过滤掉MVCC值大于本次scan MVCC的数据，保证了scan不会检索到还未提交成功的数据。这也说明HBase默认即为read committed级别，只不过是单行事务。<br><img src="/image3.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <p>真正业务场景下是会有很多个client同时写入的，此时不管向MVCC申请事务id还是更新read point都会涉及到多用户竞争的情况。如图client A B C分别写入了数据de&#x2F;fg&#x2F;hi，有可能A C已经写入成功了，而B还未执行完，下面我们看一下MVCC控制中心是如何协调并发请求的。</p>
-<h2 id="MVCC控制中心"><a href="#MVCC控制中心" class="headerlink" title="MVCC控制中心"></a>MVCC控制中心</h2><p>先介绍一下MVCC控制中心–<strong>MultiVersionConsistencyControl</strong>类.<br><strong>它包含了三个重要的成员：</strong><br>1.memstoreRead：即我们提到的read point，记录可以已执行完毕的事务id<br>2.memstoreWrite：即我们提到的write point，记录当前正在执行的最大事务id<br>3.writeQueue：一个LinkedList，每一个元素是一个WriteEntry对象。<br><strong>WriteEntry类包含两个属性：</strong><br>1.writeNumber：事务id<br>2.completed： True&#x2F;False，数据写入成功后，写入线程会将其设置为True</p>
-<p><img src="https://cdn.nlark.com/yuque/0/2022/png/2400117/1648126739490-973f72d6-3fd1-4dbb-9eab-87c23ca4ea3e.png#averageHue=%23f3f2f2&clientId=ucb31ba64-bfa7-4&from=paste&height=495&id=uc885a32e&originHeight=495&originWidth=1119&originalType=binary&ratio=1&rotation=0&showTitle=false&size=216626&status=done&style=none&taskId=u1ed7416c-6991-4b1e-9ace-494ae0f8d10&title=&width=1119" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<h2 id="MVCC控制中心"><a href="#MVCC控制中心" class="headerlink" title="MVCC控制中心"></a>MVCC控制中心</h2><p>先介绍一下MVCC控制中心–<strong>MultiVersionConsistencyControl</strong>类.<br><strong>它包含了三个重要的成员：</strong><br>1.memstoreRead：即我们提到的read point，记录可以已执行完毕的事务id<br>2.memstoreWrite：即我们提到的write point，记录当前正在执行的最大事务id<br>3.writeQueue：一个LinkedList，每一个元素是一个WriteEntry对象。<br><strong>WriteEntry类包含两个属性：</strong><br>1.writeNumber：事务id<br>2.completed： True&#x2F;False，数据写入成功后，写入线程会将其设置为True<br><img src="/image4.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <p><strong>下面详细解释MVCC控制中心针对多用户请求是如何做到同步的：</strong></p>
 <ol>
 <li>当一个client写入数据时，首先lock住MVCC控制中心的写入队列LinkedList，并向其插入一个新的entry，并将之前的write point+1赋予entry的num（write point+1也是同步操作），表示发起了一个新的写入事务。Flag值此时为False，表明目前事务还未完成，数据还在写入过程中。</li>
@@ -393,7 +392,7 @@
 </ol>
 </li>
 </ol>
-<p><img src="https://cdn.nlark.com/yuque/0/2022/png/2400117/1668152137188-6d557d2b-4dbf-4ece-bc4f-6529f176e754.png#averageHue=%232c2c2b&clientId=u112e1808-fc78-4&from=paste&height=791&id=ua4c3cef8&originHeight=1581&originWidth=2172&originalType=binary&ratio=1&rotation=0&showTitle=false&size=1030029&status=done&style=none&taskId=u7539664a-fcc9-479b-9db3-927d247e9db&title=&width=1086" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<p><img src="/image5.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
 <h1 id="MVCC和OCC的区别"><a href="#MVCC和OCC的区别" class="headerlink" title="MVCC和OCC的区别"></a>MVCC和OCC的区别</h1><p>当多个用户&#x2F;进程&#x2F;线程同时对数据库进行操作时，会出现3种冲突情形：</p>
 <ul>
 <li>读-读，不存在任何问题</li>
@@ -456,7 +455,7 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>test_artical</div>
+      <div>MVCC &amp; OCC</div>
       <div>http://example.com/2024/01/01/MVCC &amp; OCC/</div>
     </div>
     <div class="license-meta">
